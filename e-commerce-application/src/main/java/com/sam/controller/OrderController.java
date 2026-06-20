@@ -26,7 +26,7 @@ public class OrderController {
     public ResponseEntity<OrderDTO> placeOrder(
             @PathVariable("userId") Long userId,
             @RequestBody OrderDTO orderDTO,
-            @RequestParam AddressType addressType)
+            @RequestParam("addressType") AddressType addressType)
     {
         return new ResponseEntity<>(orderService.placeOrder(userId,orderDTO,addressType), HttpStatus.CREATED);
     }

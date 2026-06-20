@@ -11,6 +11,7 @@ import com.sam.dto.OrderItemDTO;
 import com.sam.dto.ProductDTO;
 import com.sam.dto.RevenueDTO;
 import com.sam.entity.*;
+import com.sam.exception.*;
 import com.sam.service.OrderService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +44,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderDTO placeOrder(Long id, OrderDTO orderDTO, AddressType addressType) {
         User user = userRepository.findById(id)
-                .orElseThrow(()->new RuntimeException("User Not Found or it's Inactive"));
+                .orElseThrow(()->new UserNotFoundException("User Not Found with Id "+id+" or it's Inactive"));
 
         Order order = new Order();
         order.setUser(user);//Setting User Id Over Here
@@ -57,7 +58,7 @@ public class OrderServiceImpl implements OrderService {
                 .filter(a -> a.getAddressType().equals(addressType))
                 .findFirst()
                 .orElseThrow(() ->
-                        new RuntimeException("Address not found,create a new address or choose different address"));
+                        new AddressNotFoundException("No address with the type "+addressType+", create a new address"));
 
         String shippingAdd = address.getStreet()+","+address.getCity()+","+address.getCountry()+","+address.getZipCode();
 
@@ -70,7 +71,7 @@ public class OrderServiceImpl implements OrderService {
         for(OrderItemDTO dto:orderDTO.getOrderItems())
         {
             Product product = productRepository.findbyProductAndQuantity(dto.getProductId(),dto.getQuantity())
-                    .orElseThrow(()->new RuntimeException("Either stock out or product is not found"));
+                    .orElseThrow(()->new InsufficientStockException("Either Selected Product Is out-of-stock or Does not exists "));
 
             product.setStockQuantity(product.getStockQuantity()-dto.getQuantity());
 
@@ -96,7 +97,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public List<OrderDTO> getOrder(Long userId) {
         List<Order> orders =orderRepository.findByUserId(userId);
-        if(orders.isEmpty()) throw new RuntimeException("Empty Order List");
+        if(orders.isEmpty()) throw new OrderNotFoundException("User has not placed order yet");
         List<OrderDTO> orderDTOS = new ArrayList<>();
         orders.forEach(order -> {
             OrderDTO orderDTO = modelMapper.map(order,OrderDTO.class);
@@ -108,7 +109,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderDTO get(Long id) {
         Order order = orderRepository.findById(id)
-                .orElseThrow(()->new RuntimeException("No Order Found"));
+                .orElseThrow(()->new OrderNotFoundException("No Order Found With Id "+id));
         return modelMapper.map(order,OrderDTO.class);
     }
 
@@ -127,21 +128,21 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderDTO cancelOrder(Long userId,Long orderId) {
         Order order = orderRepository.findByUserAndOrder(userId,orderId)
-                .orElseThrow(()->new RuntimeException("UserId/OrderId didn't matched"));
+                .orElseThrow(()->new OrderNotFoundException("UserId/OrderId didn't matched"));
 
         if (order.getStatus() == OrderStatus.CANCELLED)
-            throw new RuntimeException("Order already cancelled");
+            throw new InvalidActionException("Order already cancelled");
 
         if (order.getStatus() == OrderStatus.DELIVERED)
-            throw new RuntimeException("Delivered orders cannot be cancelled");
+            throw new InvalidActionException("Delivered orders cannot be cancelled");
 
         if (order.getStatus() == OrderStatus.SHIPPED)
-            throw new RuntimeException("Shipped orders cannot be cancelled");
+            throw new InvalidActionException("Shipped orders cannot be cancelled");
 
         for(OrderItem orderItem:order.getOrderItems())
         {
             Product product = productRepository.findById(orderItem.getProduct().getId())
-                    .orElseThrow(()->new RuntimeException("Product Not Found"));
+                    .orElseThrow(()->new ProductNotFoundException("Product Not Found"));
             product.setStockQuantity(
                     product.getStockQuantity()+orderItem.getQuantity()
             );
@@ -154,7 +155,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderDTO changeOrderStatus(Long orderId,OrderStatus newStatus) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(()->new RuntimeException("Invalid OrderId or Order Is Cancelled"));
+                .orElseThrow(()->new OrderNotFoundException("Invalid OrderId "+orderId+"or Order Does not exists"));
 
         OrderStatus currentStatus = order.getStatus();
 
@@ -167,7 +168,7 @@ public class OrderServiceImpl implements OrderService {
                     order.setStatus(newStatus);
                 }
                 else
-                    throw new RuntimeException("Invalid transition");
+                    throw new InvalidActionException("Invalid order status transition from "+order.getStatus()+" => "+newStatus);
             }
             case CONFIRMED -> {
                 if(newStatus==OrderStatus.PROCESSING ||
@@ -176,28 +177,28 @@ public class OrderServiceImpl implements OrderService {
                     order.setStatus(newStatus);
                 }
                 else
-                    throw new RuntimeException("Invalid transition");
+                    throw new InvalidActionException("Invalid order status transition from "+order.getStatus()+" => "+newStatus);
             }
             case PROCESSING -> {
                 if(newStatus==OrderStatus.SHIPPED)
                     order.setStatus(newStatus);
                 else
-                    throw new RuntimeException("Invalid transition");
+                    throw new InvalidActionException("Invalid order status transition from "+order.getStatus()+" => "+newStatus);
             }
             case SHIPPED -> {
                 if(newStatus==OrderStatus.OUT_FOR_DELIVERY)
                     order.setStatus(newStatus);
                 else
-                    throw new RuntimeException("Invalid transition");
+                    throw new InvalidActionException("Invalid order status transition from "+order.getStatus()+" => "+newStatus);
             }
             case OUT_FOR_DELIVERY -> {
                 if(newStatus==OrderStatus.DELIVERED)
                     order.setStatus(newStatus);
                 else
-                    throw new RuntimeException("Invalid transition");
+                    throw new InvalidActionException("Invalid order status transition from "+order.getStatus()+" => "+newStatus);
             }
             case DELIVERED, CANCELLED ->
-                    throw new RuntimeException("Order status cannot be changed");
+                    throw new InvalidActionException("Invalid order status transition from "+order.getStatus()+" => "+newStatus);
         }
         Order savedOrder = orderRepository.save(order);
         return modelMapper.map(savedOrder,OrderDTO.class);
@@ -206,7 +207,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public List<OrderDTO> getByStatus(OrderStatus orderStatus) {
         List<Order> orders = orderRepository.findByStatus(orderStatus);
-        if(orders.isEmpty()) throw new RuntimeException("No orders based on applied status");
+        if(orders.isEmpty()) throw new OrderNotFoundException("No orders based on applied status "+orderStatus);
         return orders.stream()
                 .map(order -> modelMapper.map(order,OrderDTO.class)).toList();
     }
@@ -214,7 +215,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public List<OrderDTO> findByDateInRange(LocalDateTime start, LocalDateTime end) {
         List<Order> orders = orderRepository.findByOrderDateBetween(start,end);
-        if(orders.isEmpty()) throw new RuntimeException("No Order found in this range");
+        if(orders.isEmpty()) throw new OrderNotFoundException("No Order found in this range of "+start+" and "+end);
         return orders.stream()
                 .map(order -> modelMapper.map(order,OrderDTO.class)).toList();
     }

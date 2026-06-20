@@ -4,6 +4,9 @@ import com.sam.dao.ProductRepository;
 import com.sam.dto.ProductAvaialabilityDTO;
 import com.sam.dto.ProductDTO;
 import com.sam.entity.Product;
+import com.sam.exception.InsufficientStockException;
+import com.sam.exception.ProductNotFoundException;
+import com.sam.exception.SearchResultNotFoundException;
 import com.sam.service.ProductService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -36,14 +39,13 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductDTO get(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(()-> new RuntimeException("No Product Found With this id"));
+                .orElseThrow(()-> new ProductNotFoundException("No Product Found With this id "+id));
         return modelMapper.map(product,ProductDTO.class);
     }
 
     @Override
     public List<ProductDTO> getAll() {
         List<Product> products = productRepository.findAll();
-        if(products.isEmpty()) throw new RuntimeException("No product Found");
         List<ProductDTO> productDTOS = new ArrayList<>();
         products.forEach(product -> {
             ProductDTO productDTO = modelMapper.map(product,ProductDTO.class);
@@ -56,7 +58,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductDTO updateProduct(Long productId, ProductDTO productDTO) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(()-> new RuntimeException("Product Not Found"));
+                .orElseThrow(()-> new ProductNotFoundException("No Product Found With this id "+productId));
         modelMapper.map(productDTO,product);
         Product updatedProduct =productRepository.save(product);
         return modelMapper.map(updatedProduct,ProductDTO.class);
@@ -66,7 +68,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Long deleteProduct(Long productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(()-> new RuntimeException("Product Not Found"));
+                .orElseThrow(()-> new ProductNotFoundException("No Product Found With this id "+productId));
         productRepository.delete(product);
         return productId;
     }
@@ -74,7 +76,6 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductDTO> searchProduct(String name) {
         List<Product> products= productRepository.findByNameContainingIgnoreCase(name);
-        if(products.isEmpty()) throw new RuntimeException("No Search Result");
         return products.stream()
                 .map(product -> modelMapper.map(product,ProductDTO.class))
                 .toList();
@@ -83,7 +84,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductDTO> findByPriceLesserThanEqual(BigDecimal price) {
         List<Product> products= productRepository.findByPriceLessThanEqual(price);
-        if(products.isEmpty()) throw new RuntimeException("No Product In this range");
+        if(products.isEmpty()) throw new SearchResultNotFoundException("No Product in the price range less than "+price);
         return products.stream()
                 .map(product -> modelMapper.map(product,ProductDTO.class))
                 .toList();
@@ -92,7 +93,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductDTO> findByPriceGreaterThanEqual(BigDecimal price) {
         List<Product> products= productRepository.findByPriceGreaterThanEqual(price);
-        if(products.isEmpty()) throw new RuntimeException("No Product In this range");
+        if(products.isEmpty()) throw new SearchResultNotFoundException("No Product In this range Of price "+price);
         return products.stream()
                 .map(product -> modelMapper.map(product,ProductDTO.class))
                 .toList();
@@ -101,7 +102,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductDTO> findByPriceBetween(BigDecimal startingPrice, BigDecimal endingPrice) {
         List<Product> products= productRepository.findByPriceBetween(startingPrice,endingPrice);
-        if(products.isEmpty()) throw new RuntimeException("No Product In this range");
+        if(products.isEmpty()) throw new SearchResultNotFoundException("No Product Lies in range of  INR"+startingPrice+" and INR"+endingPrice);
         return products.stream()
                 .map(product -> modelMapper.map(product,ProductDTO.class))
                 .toList();
@@ -110,7 +111,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductDTO> inStockProducts() {
         List<Product> products= productRepository.searchProductInStock();
-        if(products.isEmpty()) throw new RuntimeException("All Products Are Out Of Stock Currently");
+        if(products.isEmpty()) throw new InsufficientStockException("All Products Are Out Of Stock Currently");
         return products.stream()
                 .map(product -> modelMapper.map(product,ProductDTO.class))
                 .toList();
@@ -144,7 +145,6 @@ public class ProductServiceImpl implements ProductService {
                 ,Sort.by(input).ascending()
         );
         Page<Product> products = productRepository.findAll(pageRequest);
-        if(products.isEmpty()) throw  new RuntimeException("No Product Found");
         return products.map(product -> modelMapper.map(product,ProductDTO.class));
     }
 
@@ -199,7 +199,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductAvaialabilityDTO checkProductAvailability(Long productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(()->new RuntimeException("No product found with given productId"));
+                .orElseThrow(()->new ProductNotFoundException("No product found with given productId "+productId));
         ProductAvaialabilityDTO productAvaialabilityDTO = new ProductAvaialabilityDTO();
         productAvaialabilityDTO.setStock(product.getStockQuantity());
         boolean isAvailable;
@@ -212,7 +212,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductDTO softDeleteProduct(Long productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(()-> new RuntimeException("No Product Found with given Id"));
+                .orElseThrow(()-> new ProductNotFoundException("No product found with given productId "+productId));
         String name = '('+"deleted"+")";
         product.setName(product.getName()+name);
         product.setActive(false);

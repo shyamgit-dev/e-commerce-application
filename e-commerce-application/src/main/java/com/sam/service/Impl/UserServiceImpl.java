@@ -4,6 +4,7 @@ import com.sam.dao.UserRepository;
 import com.sam.dto.UserDTO;
 import com.sam.dto.UsersDTO;
 import com.sam.entity.User;
+import com.sam.exception.UserNotFoundException;
 import com.sam.service.UserService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -41,18 +42,14 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDTO getUser(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(()->  new IllegalArgumentException("User Not Found"));
+                .orElseThrow(()->  new UserNotFoundException("User with Id "+userId+" not found"));
         return modelMapper.map(user,UserDTO.class);
     }
 
     @Override
     public List<UserDTO> getAll() {
         List<User> users = userRepository.findAll();
-        if (users.isEmpty())
-               throw new RuntimeException("Empty User List");
-
         List<UserDTO> userDTOS = new ArrayList<>();
-
         users.forEach(user->{
             UserDTO dto = modelMapper.map(user,UserDTO.class);
             userDTOS.add(dto);
@@ -69,7 +66,6 @@ public class UserServiceImpl implements UserService {
                 Sort.by(Sort.Direction.ASC,sort)
         );
         Page<User> users = userRepository.findAll(pageRequest);
-        if(users.isEmpty()) throw new RuntimeException("Empty List");
         return users.stream()
                 .map(user -> modelMapper.map(user,UsersDTO.class)).toList();
     }
@@ -78,7 +74,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UsersDTO updateUser(Long userId,UsersDTO usersDTO) {
         User user = userRepository.findById(userId)
-                .orElseThrow(()->new RuntimeException("No User Found"));
+                .orElseThrow(()->  new UserNotFoundException("User with Id "+userId+" not found"));
         user.setName(usersDTO.getName());
         user.setEmail(usersDTO.getEmail());
         User updatedUser = userRepository.save(user);
@@ -88,7 +84,6 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UsersDTO> findByNameOrEmail(String name, String email) {
         List<User> users = userRepository.findByNameOrEmail(name,email);
-        if(users.isEmpty()) throw new RuntimeException("No User Found");
         return users.stream()
                 .map(user -> modelMapper.map(user,UsersDTO.class)).toList();
     }
