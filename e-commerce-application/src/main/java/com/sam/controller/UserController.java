@@ -3,6 +3,7 @@ package com.sam.controller;
 import com.sam.dto.UserDTO;
 import com.sam.dto.UsersDTO;
 import com.sam.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,13 +19,13 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping
-    public ResponseEntity<UserDTO> post(@RequestBody UserDTO userDTO)
+    public ResponseEntity<UsersDTO> post(@Valid @RequestBody UserDTO userDTO)
     {
         return new ResponseEntity<>(userService.postUser(userDTO), HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserDTO> get(@PathVariable Long id)
+    public ResponseEntity<UsersDTO> get(@PathVariable Long id)
     {
         return new ResponseEntity<>(userService.getUser(id), HttpStatus.OK);
     }
@@ -46,7 +47,7 @@ public class UserController {
     }
 
     @PutMapping("/{userId}")
-    public ResponseEntity<UsersDTO> updateUser(@PathVariable Long userId, @RequestBody UsersDTO usersDTO)
+    public ResponseEntity<UsersDTO> updateUser(@PathVariable Long userId, @Valid @RequestBody UsersDTO usersDTO)
     {
         return new ResponseEntity<>(userService.updateUser(userId,usersDTO),HttpStatus.OK);
     }
@@ -57,6 +58,13 @@ public class UserController {
            @RequestParam String email)
     {
         return new ResponseEntity<>(userService.findByNameOrEmail(name,email),HttpStatus.OK);
+    }
+
+    @PatchMapping("/delete/{userId}")
+    public ResponseEntity<String> softDeleteUser(@PathVariable Long userId)
+    {
+        String result = "User with Id "+userService.deleteUser(userId)+" has been deleted";
+        return new ResponseEntity<>(result,HttpStatus.OK);
     }
 
 }

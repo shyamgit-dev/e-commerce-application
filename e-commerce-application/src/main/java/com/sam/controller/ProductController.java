@@ -3,6 +3,7 @@ package com.sam.controller;
 import com.sam.dto.ProductAvaialabilityDTO;
 import com.sam.dto.ProductDTO;
 import com.sam.service.ProductService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -20,7 +21,7 @@ public class ProductController {
     private final ProductService productService;
 
     @PostMapping
-    public ResponseEntity<ProductDTO> post(@RequestBody ProductDTO productDTO)
+    public ResponseEntity<ProductDTO> post(@Valid @RequestBody ProductDTO productDTO)
     {
         return new ResponseEntity<>(productService.post(productDTO), HttpStatus.CREATED);
     }
@@ -38,7 +39,7 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProductDTO> updateProduct(@PathVariable("id") Long productId,@RequestBody ProductDTO productDTO)
+    public ResponseEntity<ProductDTO> updateProduct(@PathVariable("id") Long productId,@Valid @RequestBody ProductDTO productDTO)
     {
         return new ResponseEntity<>(productService.updateProduct(productId,productDTO),HttpStatus.CREATED);
     }
@@ -86,7 +87,7 @@ public class ProductController {
     }
 
     @PostMapping("/bulk-insert")
-    public ResponseEntity<List<ProductDTO>> bulkCreate(@RequestBody List<ProductDTO> productDTOS)
+    public ResponseEntity<List<ProductDTO>> bulkCreate(@Valid @RequestBody List<ProductDTO> productDTOS)
     {
         return new ResponseEntity<>(productService.postAll(productDTOS),HttpStatus.CREATED);
     }
@@ -154,7 +155,7 @@ public class ProductController {
     }
 
     @PutMapping("/delete/{id}")
-    public ResponseEntity<ProductDTO> softDelete(@PathVariable Long id)
+    public ResponseEntity<ProductDTO> softDelete(@Valid @PathVariable Long id)
     {
         return new ResponseEntity<>(productService.softDeleteProduct(id),HttpStatus.OK);
     }
