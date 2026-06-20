@@ -4,6 +4,10 @@ import com.sam.constant.OrderStatus;
 import com.sam.entity.OrderItem;
 import com.sam.entity.User;
 import jakarta.persistence.*;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -24,8 +28,10 @@ public class OrderDTO {
     @Enumerated(EnumType.STRING)
     private OrderStatus status;*/
 
+    @NotBlank
     private String shippingAddress;
 
+    @NotBlank
     private String paymentMethod;
 
 /*    private String paymentStatus;
@@ -34,5 +40,7 @@ public class OrderDTO {
 
     private UserDTO userDTO;*/
 
+    @NotEmpty(message="Order Must Contain At Least One Item")
+    @Valid
     private List<OrderItemDTO> orderItems = new ArrayList<>();
 }

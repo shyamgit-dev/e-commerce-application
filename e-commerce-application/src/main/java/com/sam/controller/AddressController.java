@@ -2,6 +2,7 @@ package com.sam.controller;
 
 import com.sam.dto.AddressDTO;
 import com.sam.service.AddressService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -17,13 +18,13 @@ public class AddressController {
     private final AddressService addressService;
 
     @PostMapping("users/{userId}/address")
-    public ResponseEntity<AddressDTO> post(@RequestBody AddressDTO addressDTO,@PathVariable Long userId)
+    public ResponseEntity<AddressDTO> post(@Valid @RequestBody AddressDTO addressDTO, @PathVariable Long userId)
     {
         return new ResponseEntity<>(addressService.post(addressDTO,userId),HttpStatus.CREATED);
     }
 
     @PostMapping("/users/{userId}/address/bulk-insert")
-    public ResponseEntity<List<AddressDTO>> postAll(@RequestBody List<AddressDTO> dtos,@PathVariable("userId")Long userId)
+    public ResponseEntity<List<AddressDTO>> postAll(@Valid @RequestBody List<AddressDTO> dtos,@PathVariable("userId")Long userId)
     {
         return new ResponseEntity<>(addressService.bulkAddress(dtos,userId), HttpStatus.CREATED);
     }

@@ -5,6 +5,7 @@ import com.sam.constant.OrderStatus;
 import com.sam.dto.OrderDTO;
 import com.sam.dto.RevenueDTO;
 import com.sam.service.OrderService;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -25,7 +26,7 @@ public class OrderController {
     @PostMapping("/users/{userId}/orders")
     public ResponseEntity<OrderDTO> placeOrder(
             @PathVariable("userId") Long userId,
-            @RequestBody OrderDTO orderDTO,
+            @Valid @RequestBody OrderDTO orderDTO,
             @RequestParam("addressType") AddressType addressType)
     {
         return new ResponseEntity<>(orderService.placeOrder(userId,orderDTO,addressType), HttpStatus.CREATED);

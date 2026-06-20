@@ -28,22 +28,23 @@ public class UserServiceImpl implements UserService {
 
     @Transactional
     @Override
-    public UserDTO postUser(UserDTO userDTO) {
+    public UsersDTO postUser(UserDTO userDTO) {
 
         //DTO->ENTITY
         User user = modelMapper.map(userDTO,User.class);
+        user.setActive(Boolean.TRUE);
         //Saved User
         User savedUser = userRepository.save(user);
         //Entity->DTO
 
-        return modelMapper.map(savedUser,UserDTO.class);
+        return modelMapper.map(savedUser,UsersDTO.class);
     }
 
     @Override
-    public UserDTO getUser(Long userId) {
+    public UsersDTO getUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(()->  new UserNotFoundException("User with Id "+userId+" not found"));
-        return modelMapper.map(user,UserDTO.class);
+        return modelMapper.map(user,UsersDTO.class);
     }
 
     @Override
@@ -86,5 +87,16 @@ public class UserServiceImpl implements UserService {
         List<User> users = userRepository.findByNameOrEmail(name,email);
         return users.stream()
                 .map(user -> modelMapper.map(user,UsersDTO.class)).toList();
+    }
+
+    @Transactional
+    @Override
+    public Long deleteUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(()->new UserNotFoundException("User Not Found With the Id "+userId));
+        user.setActive(Boolean.FALSE);
+        String name = user.getName()+"(deleted)";
+        user.setName(name);
+        return userRepository.save(user).getUserId();
     }
 }
