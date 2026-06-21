@@ -10,6 +10,7 @@ import com.sam.exception.UserNotFoundException;
 import com.sam.service.AddressService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service("addressService")
 public class AddressServiceImpl implements AddressService {
@@ -36,6 +38,7 @@ public class AddressServiceImpl implements AddressService {
         Address address = modelMapper.map(addressDTO,Address.class);
         address.setUser(user);
         com.sam.entity.Address savedAddress =addressRepository.save(address);
+        log.info("Address created successfully for user having Id {}",userId);
         return modelMapper.map(address,AddressDTO.class);
     }
 
@@ -60,6 +63,7 @@ public class AddressServiceImpl implements AddressService {
     public AddressDTO get(Long id) {
         Address address = addressRepository.findById(id)
                 .orElseThrow(()->new AddressNotFoundException("No Address Found with Id "+id));
+        log.debug("Address Fetched for Id {}",id);
         return modelMapper.map(address,AddressDTO.class);
     }
 

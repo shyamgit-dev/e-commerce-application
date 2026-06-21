@@ -15,6 +15,7 @@ import com.sam.exception.*;
 import com.sam.service.OrderService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.weaver.ast.Or;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -27,7 +28,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-
+@Slf4j
 @Service("orderService")
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
@@ -43,6 +44,9 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     @Override
     public OrderDTO placeOrder(Long id, OrderDTO orderDTO, AddressType addressType) {
+
+        log.info("Placing order for user {}",id);
+
         User user = userRepository.findById(id)
                 .orElseThrow(()->new UserNotFoundException("User Not Found with Id "+id+" or it's Inactive"));
 
@@ -71,7 +75,10 @@ public class OrderServiceImpl implements OrderService {
         for(OrderItemDTO dto:orderDTO.getOrderItems())
         {
             Product product = productRepository.findbyProductAndQuantity(dto.getProductId(),dto.getQuantity())
-                    .orElseThrow(()->new InsufficientStockException("Either Selected Product Is out-of-stock or Does not exists "));
+                    .orElseThrow(()->{
+                        log.warn("Product {} is out of stock",dto.getProductId());
+                        return new InsufficientStockException("Selected Product Is Unavailable");
+                    });
 
             product.setStockQuantity(product.getStockQuantity()-dto.getQuantity());
 
@@ -91,6 +98,9 @@ public class OrderServiceImpl implements OrderService {
         }
         order.setTotalAmount(totalAmount);
         Order savedOrder = orderRepository.save(order);
+        log.info("Order {} placed successfully for user{}",
+                savedOrder.getId(),
+                user.getUserId());
         return modelMapper.map(savedOrder,OrderDTO.class);
     }
 
@@ -103,6 +113,7 @@ public class OrderServiceImpl implements OrderService {
             OrderDTO orderDTO = modelMapper.map(order,OrderDTO.class);
             orderDTOS.add(orderDTO);
         });
+        log.debug("Fetched Order Associated With User Id {}",userId);
         return orderDTOS;
     }
 
@@ -110,6 +121,7 @@ public class OrderServiceImpl implements OrderService {
     public OrderDTO get(Long id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(()->new OrderNotFoundException("No Order Found With Id "+id));
+        log.debug("Fetched order having Id {}",id);
         return modelMapper.map(order,OrderDTO.class);
     }
 
@@ -127,6 +139,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     @Override
     public OrderDTO cancelOrder(Long userId,Long orderId) {
+        log.info("Starting to cancel the order {} for user {}",orderId,userId);
         Order order = orderRepository.findByUserAndOrder(userId,orderId)
                 .orElseThrow(()->new OrderNotFoundException("UserId/OrderId didn't matched"));
 
@@ -148,12 +161,15 @@ public class OrderServiceImpl implements OrderService {
             );
         }
         com.sam.entity.Order cancelledOrder =orderRepository.save(order);
+        log.info("Order cancelled with Id {}",order.getId());
         return modelMapper.map(cancelledOrder,OrderDTO.class);
     }
 
     @Transactional
     @Override
     public OrderDTO changeOrderStatus(Long orderId,OrderStatus newStatus) {
+
+        log.trace("Entering to changeOrderStatus()");
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(()->new OrderNotFoundException("Invalid OrderId "+orderId+"or Order Does not exists"));
 
@@ -168,7 +184,7 @@ public class OrderServiceImpl implements OrderService {
                     order.setStatus(newStatus);
                 }
                 else
-                    throw new InvalidActionException("Invalid order status transition from "+order.getStatus()+" => "+newStatus);
+                    invalidStatusTransition(order.getStatus(),newStatus,orderId);
             }
             case CONFIRMED -> {
                 if(newStatus==OrderStatus.PROCESSING ||
@@ -177,37 +193,37 @@ public class OrderServiceImpl implements OrderService {
                     order.setStatus(newStatus);
                 }
                 else
-                    throw new InvalidActionException("Invalid order status transition from "+order.getStatus()+" => "+newStatus);
+                    invalidStatusTransition(order.getStatus(),newStatus,orderId);
             }
             case PROCESSING -> {
                 if(newStatus==OrderStatus.SHIPPED)
                     order.setStatus(newStatus);
                 else
-                    throw new InvalidActionException("Invalid order status transition from "+order.getStatus()+" => "+newStatus);
+                    invalidStatusTransition(order.getStatus(),newStatus,orderId);
             }
             case SHIPPED -> {
                 if(newStatus==OrderStatus.OUT_FOR_DELIVERY)
                     order.setStatus(newStatus);
                 else
-                    throw new InvalidActionException("Invalid order status transition from "+order.getStatus()+" => "+newStatus);
+                    invalidStatusTransition(order.getStatus(),newStatus,orderId);
             }
             case OUT_FOR_DELIVERY -> {
                 if(newStatus==OrderStatus.DELIVERED)
                     order.setStatus(newStatus);
                 else
-                    throw new InvalidActionException("Invalid order status transition from "+order.getStatus()+" => "+newStatus);
+                    invalidStatusTransition(order.getStatus(),newStatus,orderId);
             }
             case DELIVERED, CANCELLED ->
-                    throw new InvalidActionException("Invalid order status transition from "+order.getStatus()+" => "+newStatus);
+                    invalidStatusTransition(order.getStatus(),newStatus,orderId);
         }
         Order savedOrder = orderRepository.save(order);
+        log.info("OrderStatus changed for order {}", orderId);
         return modelMapper.map(savedOrder,OrderDTO.class);
     }
 
     @Override
     public List<OrderDTO> getByStatus(OrderStatus orderStatus) {
         List<Order> orders = orderRepository.findByStatus(orderStatus);
-        if(orders.isEmpty()) throw new OrderNotFoundException("No orders based on applied status "+orderStatus);
         return orders.stream()
                 .map(order -> modelMapper.map(order,OrderDTO.class)).toList();
     }
@@ -215,7 +231,6 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public List<OrderDTO> findByDateInRange(LocalDateTime start, LocalDateTime end) {
         List<Order> orders = orderRepository.findByOrderDateBetween(start,end);
-        if(orders.isEmpty()) throw new OrderNotFoundException("No Order found in this range of "+start+" and "+end);
         return orders.stream()
                 .map(order -> modelMapper.map(order,OrderDTO.class)).toList();
     }
@@ -237,4 +252,15 @@ public class OrderServiceImpl implements OrderService {
         return "IPON"+random;
 
     }
+
+    private void invalidStatusTransition(OrderStatus current,OrderStatus target,Long orderId)
+    {
+        log.warn("Invalid order status transition from {} to {} for order {}",
+                current,
+                target,
+                orderId
+        );
+        throw new InvalidActionException("Invalid order status transition from "+current+" => "+target);
+    }
+
 }
