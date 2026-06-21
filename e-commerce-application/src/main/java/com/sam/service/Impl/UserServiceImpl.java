@@ -8,6 +8,7 @@ import com.sam.exception.UserNotFoundException;
 import com.sam.service.UserService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,6 +19,7 @@ import java.sql.Array;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service("userService")
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -36,7 +38,7 @@ public class UserServiceImpl implements UserService {
         //Saved User
         User savedUser = userRepository.save(user);
         //Entity->DTO
-
+        log.info("User created with Id {}",savedUser.getUserId());
         return modelMapper.map(savedUser,UsersDTO.class);
     }
 
@@ -44,6 +46,7 @@ public class UserServiceImpl implements UserService {
     public UsersDTO getUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(()->  new UserNotFoundException("User with Id "+userId+" not found"));
+        log.debug("User Fetched With Id {}",userId);
         return modelMapper.map(user,UsersDTO.class);
     }
 
@@ -74,11 +77,13 @@ public class UserServiceImpl implements UserService {
     @Transactional
     @Override
     public UsersDTO updateUser(Long userId,UsersDTO usersDTO) {
+        log.info("Starting to update user {}",userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(()->  new UserNotFoundException("User with Id "+userId+" not found"));
         user.setName(usersDTO.getName());
         user.setEmail(usersDTO.getEmail());
         User updatedUser = userRepository.save(user);
+        log.info("Updated User With Id {}",updatedUser.getUserId());
         return modelMapper.map(updatedUser,UsersDTO.class);
     }
 
@@ -92,11 +97,14 @@ public class UserServiceImpl implements UserService {
     @Transactional
     @Override
     public Long deleteUser(Long userId) {
+        log.info("Starting to deleteUser {}",userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(()->new UserNotFoundException("User Not Found With the Id "+userId));
         user.setActive(Boolean.FALSE);
         String name = user.getName()+"(deleted)";
         user.setName(name);
-        return userRepository.save(user).getUserId();
+        com.sam.entity.User saved=userRepository.save(user);
+        log.info("Soft deleted user with {}",userId);
+        return saved.getUserId();
     }
 }

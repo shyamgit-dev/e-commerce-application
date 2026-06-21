@@ -10,6 +10,7 @@ import com.sam.exception.SearchResultNotFoundException;
 import com.sam.service.ProductService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -21,6 +22,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service("productService")
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
@@ -33,6 +35,7 @@ public class ProductServiceImpl implements ProductService {
     public ProductDTO post(ProductDTO productDTO) {
         Product product = modelMapper.map(productDTO,Product.class);
         Product savedProduct  =productRepository.save(product);
+        log.info("Product created with id {}",product.getId());
         return modelMapper.map(savedProduct,ProductDTO.class);
     }
 
@@ -40,6 +43,7 @@ public class ProductServiceImpl implements ProductService {
     public ProductDTO get(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(()-> new ProductNotFoundException("No Product Found With this id "+id));
+        log.debug("Fetched product with id {}",id);
         return modelMapper.map(product,ProductDTO.class);
     }
 
@@ -61,12 +65,14 @@ public class ProductServiceImpl implements ProductService {
                 .orElseThrow(()-> new ProductNotFoundException("No Product Found With this id "+productId));
         modelMapper.map(productDTO,product);
         Product updatedProduct =productRepository.save(product);
+        log.trace("Updated product with Id {}",productId);
         return modelMapper.map(updatedProduct,ProductDTO.class);
     }
 
     @Transactional
     @Override
     public Long deleteProduct(Long productId) {
+        log.info("Entering to delete product with id {}",productId);
         Product product = productRepository.findById(productId)
                 .orElseThrow(()-> new ProductNotFoundException("No Product Found With this id "+productId));
         productRepository.delete(product);
@@ -93,7 +99,6 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductDTO> findByPriceGreaterThanEqual(BigDecimal price) {
         List<Product> products= productRepository.findByPriceGreaterThanEqual(price);
-        if(products.isEmpty()) throw new SearchResultNotFoundException("No Product In this range Of price "+price);
         return products.stream()
                 .map(product -> modelMapper.map(product,ProductDTO.class))
                 .toList();
@@ -151,6 +156,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductDTO> fetchOutOfStockProducts(Integer quantity) {
         List<Product> products = productRepository.fetchProductOutOfStock(quantity);
+        log.warn("Following Products Are Out Of Stock Fill the STOCKs !!");
         return products.stream()
                 .map(product -> modelMapper.map(product,ProductDTO.class))
                 .toList();
@@ -159,6 +165,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductDTO> fetchLowStockProducts(Integer threshold) {
         List<Product> products = productRepository.fetchProductLowfStock(threshold);
+        log.warn("Following Products Quantity Is Lesser Than Threshold Upstock them ASAP!!");
         return products.stream()
                 .map(product -> modelMapper.map(product,ProductDTO.class))
                 .toList();
@@ -211,12 +218,14 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     @Override
     public ProductDTO softDeleteProduct(Long productId) {
+        log.info("Entering to soft delete product with Id {}",productId);
         Product product = productRepository.findById(productId)
                 .orElseThrow(()-> new ProductNotFoundException("No product found with given productId "+productId));
         String name = '('+"deleted"+")";
         product.setName(product.getName()+name);
         product.setActive(false);
         Product savedProduct  = productRepository.save(product);
+        log.info("Sof deleted product with Id {}",savedProduct.getId());
         return modelMapper.map(savedProduct,ProductDTO.class);
     }
 

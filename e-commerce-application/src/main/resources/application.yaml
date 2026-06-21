@@ -14,3 +14,16 @@ spring:
     show-sql: true
     hibernate:
       ddl-auto: update
+
+#logging
+logging:
+  level:
+    root: INFO
+    com.sam: DEBUG
+    org.springframework.web: INFO
+
+  file:
+    name: logs/application.log
+
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n"
