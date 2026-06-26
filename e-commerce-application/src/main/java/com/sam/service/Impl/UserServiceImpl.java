@@ -1,7 +1,10 @@
 package com.sam.service.Impl;
 
+import com.sam.constant.Role;
 import com.sam.dao.UserRepository;
 import com.sam.dto.UserDTO;
+import com.sam.dto.UserPostRegistration;
+import com.sam.dto.UserRegistrationDTO;
 import com.sam.dto.UsersDTO;
 import com.sam.entity.User;
 import com.sam.exception.UserNotFoundException;
@@ -13,6 +16,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.sql.Array;
@@ -27,6 +31,8 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     private final ModelMapper modelMapper;
+
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     @Override
@@ -106,5 +112,29 @@ public class UserServiceImpl implements UserService {
         com.sam.entity.User saved=userRepository.save(user);
         log.info("Soft deleted user with {}",userId);
         return saved.getUserId();
+    }
+
+    @Override
+    public UserPostRegistration registerUser(UserRegistrationDTO userRegistrationDTO) {
+
+        if(userRepository.existsByEmail(userRegistrationDTO.getEmail()))
+            throw new RuntimeException("Email already registered");
+
+        if(userRepository.existsByUsername(userRegistrationDTO.getUsername()))
+            throw new RuntimeException("Username already taken choose different one");
+
+        User user = modelMapper.map(userRegistrationDTO,User.class);
+        user.setRole(Role.USER);
+        user.setPassword(passwordEncoder.encode(userRegistrationDTO.getPassword()));
+        user.setActive(Boolean.TRUE);
+
+        com.sam.entity.User registeredUser =userRepository.save(user);
+
+        log.info("User registration completed with username {} and userId {}",
+                registeredUser.getUsername(),
+                registeredUser.getUserId()
+                );
+
+        return modelMapper.map(registeredUser,UserPostRegistration.class);
     }
 }
