@@ -1,8 +1,9 @@
 package com.sam.service;
 
 import com.sam.dto.UserDTO;
+import com.sam.dto.UserPostRegistration;
+import com.sam.dto.UserRegistrationDTO;
 import com.sam.dto.UsersDTO;
-import com.sam.entity.User;
 
 import java.util.List;
 
@@ -15,4 +16,7 @@ public interface UserService {
     public UsersDTO updateUser(Long userId,UsersDTO usersDTO);
     public List<UsersDTO> findByNameOrEmail(String name,String email);
     public Long deleteUser(Long userId);
+
+    //Specially Design for registration purpose It's Similar to postUser();
+    public UserPostRegistration registerUser(UserRegistrationDTO userRegistrationDTO);
 }

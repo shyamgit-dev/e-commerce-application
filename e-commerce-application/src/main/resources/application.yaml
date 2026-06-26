@@ -27,3 +27,8 @@ logging:
 
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n"
+
+jwt:
+   secret: ${JWT_SECRET}
+   access-token-expiration : 3600000
+   refresh-token-expiration : 604800000
