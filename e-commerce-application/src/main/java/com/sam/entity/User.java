@@ -33,4 +33,7 @@ public class User {
             orphanRemoval = true
     )
     private List<Address> addresses;
+
+    @OneToOne(mappedBy = "user")
+    private Cart cart;
 }

@@ -64,7 +64,7 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() ->
                         new AddressNotFoundException("No address with the type "+addressType+", create a new address"));
 
-        String shippingAdd = address.getStreet()+","+address.getCity()+","+address.getCountry()+","+address.getZipCode();
+        String shippingAdd = address.getStreet()+" "+address.getCity()+" "+address.getCountry()+" "+address.getZipCode();
 
         order.setShippingAddress(shippingAdd);
         order.setPaymentMethod(orderDTO.getPaymentMethod());

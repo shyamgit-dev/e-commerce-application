@@ -21,5 +21,4 @@ public class UsersDTO {
     private String email;
 
     private boolean isActive;
-
 }

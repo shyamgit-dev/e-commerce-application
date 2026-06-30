@@ -23,7 +23,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({UserNotFoundException.class,
                       OrderNotFoundException.class,
                       ProductNotFoundException.class,
-                      AddressNotFoundException.class})
+                      AddressNotFoundException.class,
+                      CartItemNotFoundException.class
+    })
     public ResponseEntity<ErrorResponse> handleNotFound(RuntimeException e,
                                                             HttpServletRequest request)
     {
