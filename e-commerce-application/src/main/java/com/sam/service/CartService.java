@@ -1,6 +1,6 @@
 package  com.sam.service;
 
-import com.sam.dao.CartRequestDTO;
+import com.sam.dto.CartRequestDTO;
 import com.sam.dto.CartDTO;
 import com.sam.dto.CartItemDTO;
 

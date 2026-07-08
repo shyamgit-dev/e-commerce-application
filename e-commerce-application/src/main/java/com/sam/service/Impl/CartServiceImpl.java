@@ -3,6 +3,7 @@ package com.sam.service.Impl;
 import com.sam.dao.*;
 import com.sam.dto.CartDTO;
 import com.sam.dto.CartItemDTO;
+import com.sam.dto.CartRequestDTO;
 import com.sam.entity.Cart;
 import com.sam.entity.CartItem;
 import com.sam.entity.Product;
@@ -22,7 +23,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Objects;
 import java.util.Optional;
 
 @Service("cartService")

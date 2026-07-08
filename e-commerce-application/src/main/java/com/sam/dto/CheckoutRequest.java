@@ -1,5 +1,7 @@
 package com.sam.dto;
 
+
+import com.sam.constant.AddressType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -7,9 +9,8 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class CartRequestDTO {
+public class CheckoutRequest {
 
-    private Long productId;
-
-    private Integer quantity;
+    private String paymentMethod;
+    private Long addressId;
 }
