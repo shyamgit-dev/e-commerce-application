@@ -1,9 +1,8 @@
 package com.sam.controller;
 
-import com.sam.dao.CartRequestDTO;
-import com.sam.dto.CartDTO;
-import com.sam.dto.CartItemDTO;
+import com.sam.dto.*;
 import com.sam.service.CartService;
+import com.sam.service.CheckoutService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 public class CartController {
 
     private final CartService cartService;
+
+    private final CheckoutService checkoutService;
 
     @PostMapping("/cart/items")
     public ResponseEntity<CartDTO> addTOCart(@RequestBody CartRequestDTO cartRequestDTO)
@@ -49,6 +50,13 @@ public class CartController {
         String result = "Entire cart has been deleted";
         cartService.deleteCart();
         return new ResponseEntity<>(result,HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('USER')")
+    @PostMapping("/cart/checkout")
+    public ResponseEntity<OrderDTO> checkout(@RequestBody CheckoutRequest checkoutRequest)
+    {
+        return new ResponseEntity<>(checkoutService.checkout(checkoutRequest), HttpStatus.CREATED);
     }
 
 
