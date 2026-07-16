@@ -1,5 +1,6 @@
 package com.sam.utility;
 
+import com.razorpay.RazorpayException;
 import com.sam.dto.ErrorResponse;
 import com.sam.exception.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -44,6 +45,39 @@ public class GlobalExceptionHandler {
                  request.getRequestURI()
          );
        return new ResponseEntity<>(errorResponse,HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(RazorpayException.class)
+    public ResponseEntity<ErrorResponse> handleRazorpayException(
+            RazorpayException ex,
+            HttpServletRequest request) {
+
+        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
+
+        String message = ex.getMessage();
+
+        if (message.contains("BAD_REQUEST_ERROR")) {
+            status = HttpStatus.BAD_REQUEST;
+        }
+        else if (message.contains("SERVER_ERROR")) {
+            status = HttpStatus.BAD_GATEWAY;
+        }
+        else if (message.contains("GATEWAY_ERROR")) {
+            status = HttpStatus.BAD_GATEWAY;
+        }
+        else if (message.contains("No such host")) {
+            status = HttpStatus.SERVICE_UNAVAILABLE;
+        }
+
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now(),
+                status.value(),
+                status.getReasonPhrase(),
+                message,
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(status).body(response);
     }
 
     @ExceptionHandler(InvalidActionException.class)

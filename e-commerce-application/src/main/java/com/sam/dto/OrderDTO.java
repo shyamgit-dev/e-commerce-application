@@ -19,14 +19,15 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OrderDTO {
-/*    private Long id;
+     private Long id;
 
+     /*
    private LocalDateTime orderDate;
 
     private BigDecimal totalAmount;
-
+*/
     @Enumerated(EnumType.STRING)
-    private OrderStatus status;*/
+    private OrderStatus status;
 
     @NotBlank
     private String shippingAddress;

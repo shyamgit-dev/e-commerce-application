@@ -1,5 +1,6 @@
 package com.sam.service;
 
+import com.razorpay.RazorpayException;
 import com.sam.constant.AddressType;
 import com.sam.constant.OrderStatus;
 import com.sam.dto.OrderDTO;
@@ -21,6 +22,8 @@ public interface OrderService {
     public Page<OrderDTO> getAll(int pageNumber,int pageSize,String sortField);
 
     public OrderDTO cancelOrder(Long userId,Long orderId);
+
+    OrderDTO cancelTheOrder(Long orderId) throws RazorpayException;
 
     public OrderDTO changeOrderStatus(Long orderId, OrderStatus newStatus);
 

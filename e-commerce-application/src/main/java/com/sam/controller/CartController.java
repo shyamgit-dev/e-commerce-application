@@ -18,12 +18,14 @@ public class CartController {
 
     private final CheckoutService checkoutService;
 
+    @PreAuthorize("hasRole('USER')")
     @PostMapping("/cart/items")
     public ResponseEntity<CartDTO> addTOCart(@RequestBody CartRequestDTO cartRequestDTO)
     {
        return new ResponseEntity<>(cartService.addTOCart(cartRequestDTO), HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasRole('USER')")
     @GetMapping("/cart")
     public ResponseEntity<CartDTO> getCart()
     {
@@ -36,6 +38,7 @@ public class CartController {
         return new ResponseEntity<>(cartService.updateCart(cartItemId,dto),HttpStatus.OK);
     }
 
+    @PreAuthorize("hasRole('USER')")
     @DeleteMapping("/cart/items/{id}")
     public ResponseEntity<String> deleteCartItem(@PathVariable("id") Long cartItemId)
     {

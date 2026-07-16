@@ -10,6 +10,7 @@ import com.sam.entity.Product;
 import com.sam.entity.User;
 import com.sam.exception.*;
 import com.sam.service.CartService;
+import com.sam.utility.SecurityIntegration;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +41,8 @@ public class CartServiceImpl implements CartService {
 
     private final ModelMapper modelMapper;
 
+    private final SecurityIntegration securityIntegration;
+
     @Transactional
     @Override
     public CartDTO addTOCart(CartRequestDTO cartRequestDTO) {
@@ -55,7 +58,7 @@ public class CartServiceImpl implements CartService {
         if(cartRequestDTO.getQuantity()>product.getStockQuantity())
             throw new InsufficientStockException("Less stock as per the request");
 
-        User user = getCurrentUser();
+        User user = securityIntegration.getAuthenticatedUser();
 
         Cart cart = user.getCart();
 
@@ -114,7 +117,7 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public CartDTO getCart() {
-        User user = getCurrentUser();
+        User user = securityIntegration.getAuthenticatedUser();
 
         if (user.getCart() == null) {
             throw new RuntimeException("Your cart is empty");
@@ -166,7 +169,7 @@ public class CartServiceImpl implements CartService {
         CartItem cartItem = itemRepository.findById(cartItemId)
                 .orElseThrow(()-> new CartItemNotFoundException("CartItem Not Found"));
 
-        User user = getCurrentUser();
+        User user = securityIntegration.getAuthenticatedUser();
 
         if(!cartItem.getCart().getUser().getUserId().equals(user.getUserId()))
             throw new AccessDeniedException("You can't delete others cart");
@@ -179,7 +182,7 @@ public class CartServiceImpl implements CartService {
     @Override
     public void deleteCart() {
 
-        User user = getCurrentUser();
+        User user = securityIntegration.getAuthenticatedUser();
 
         if(user.getCart()==null)
             throw new InvalidActionException("User is yet to create a cart or no cart associated with user");
@@ -189,23 +192,6 @@ public class CartServiceImpl implements CartService {
         user.setCart(null);
 
         cartRepository.delete(cart);
-    }
-
-    private User getCurrentUser()
-    {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-
-        if(authentication==null || !authentication.isAuthenticated())
-            throw new AccessDeniedException("Not Authenticated ");
-
-        String username = authentication.getName();
-
-        User user;
-        user = userRepository.findByUsername(username)
-                .orElseThrow(()->new UsernameNotFoundException("Username not found"));
-
-        return user;
     }
 }
 
