@@ -1,5 +1,6 @@
 package com.sam.controller;
 
+import com.razorpay.RazorpayException;
 import com.sam.constant.AddressType;
 import com.sam.constant.OrderStatus;
 import com.sam.dto.OrderDTO;
@@ -34,7 +35,7 @@ public class OrderController {
     }
 
     @GetMapping("/users/{userId}/orders")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('USER') or @userSecurity.isOwner(#userId)")
     public ResponseEntity<List<OrderDTO>> getOrder(@PathVariable Long userId)
     {
         return new ResponseEntity<>(orderService.getOrder(userId),HttpStatus.OK);
@@ -65,8 +66,16 @@ public class OrderController {
         return new ResponseEntity<>(orderService.cancelOrder(userId,orderId),HttpStatus.OK);
     }
 
+    //After JWT
+    @PostMapping("/orders/{orderId}/cancel")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public ResponseEntity<OrderDTO> cancelTheOrder(@PathVariable Long orderId) throws RazorpayException {
+       return new ResponseEntity<>(orderService.cancelTheOrder(orderId),HttpStatus.CREATED);
+    }
+
+
     @PatchMapping("/orders/{orderId}/status")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OrderDTO> changeOrderStatus(@PathVariable Long orderId,
                                                      @RequestParam("status") OrderStatus newStatus)
     {

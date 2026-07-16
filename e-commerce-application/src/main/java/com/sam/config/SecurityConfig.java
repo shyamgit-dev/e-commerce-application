@@ -9,7 +9,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -40,6 +39,18 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth-> auth
 
                                 // Public
+                                .requestMatchers(
+                                        "/",
+                                        "/index.html",
+                                        "/success.html",
+                                        "/failure.html",
+                                        "/css/**",
+                                        "/js/**",
+                                        "/images/**"
+                                        //"/favicon.ico"
+                                ).permitAll()
+
+
                                 .requestMatchers(HttpMethod.POST,"/api/users/sign-up").permitAll()
                                 .requestMatchers(HttpMethod.POST,"/api/users").permitAll()
                                 .requestMatchers(HttpMethod.GET,"/api/products/**").permitAll()
@@ -68,14 +79,24 @@ public class SecurityConfig {
                                 .requestMatchers(HttpMethod.GET,"/api/address").hasRole("ADMIN")
 
 
-
-
                                 // ADMIN
                                 .requestMatchers(HttpMethod.POST,"/api/products").hasRole("ADMIN")
                                 .requestMatchers(HttpMethod.PUT,"/api/products/**").hasRole("ADMIN")
                                 .requestMatchers(HttpMethod.DELETE,"/api/products/**").hasRole("ADMIN")
-                                .requestMatchers(HttpMethod.GET,"/api/orders/**").hasRole("ADMIN")
-                                .requestMatchers(HttpMethod.PUT,"/api/users/**").hasRole("ADMIN")
+                                .requestMatchers(HttpMethod.GET,"/api/orders").hasRole("ADMIN")
+                                .requestMatchers(HttpMethod.GET,"/api/orders/cancel").hasAnyRole("ADMIN","USER")
+                                .requestMatchers(HttpMethod.PUT,"/api/users/*/orders").hasAnyRole("USER","ADMIN")
+                                .requestMatchers("/api/users/*/orders/*/cancel").hasAnyRole("USER","ADMIN")
+                                .requestMatchers("/api/orders/*/status").hasRole("ADMIN")
+                                .requestMatchers("/api/orders/*/cancel").hasAnyRole("USER","ADMIN")
+
+                               // PAYMENTS
+                                .requestMatchers(HttpMethod.POST,"/api/payments/create-order").hasRole("USER")
+                                .requestMatchers(HttpMethod.POST,"/api/payments/verify").hasAnyRole("USER","ADMIN")
+
+                               //Cart
+                                .requestMatchers(HttpMethod.POST,"/api/cart/items").hasRole("USER")
+
 
                                 .anyRequest().authenticated()
                         )

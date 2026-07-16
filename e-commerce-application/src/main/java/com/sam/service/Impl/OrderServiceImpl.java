@@ -1,7 +1,11 @@
 package com.sam.service.Impl;
 
+import com.razorpay.RazorpayClient;
+import com.razorpay.RazorpayException;
+import com.razorpay.Refund;
 import com.sam.constant.AddressType;
 import com.sam.constant.OrderStatus;
+import com.sam.constant.PaymentStatus;
 import com.sam.dao.OrderItemRepository;
 import com.sam.dao.OrderRepository;
 import com.sam.dao.ProductRepository;
@@ -13,14 +17,20 @@ import com.sam.dto.RevenueDTO;
 import com.sam.entity.*;
 import com.sam.exception.*;
 import com.sam.service.OrderService;
+import com.sam.utility.SecurityIntegration;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.weaver.ast.Or;
+import org.json.JSONObject;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.security.SecureRandom;
@@ -33,6 +43,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
 
+    private final SecurityIntegration securityIntegration;
+
     private final OrderRepository orderRepository;
 
     private final UserRepository userRepository;
@@ -40,6 +52,8 @@ public class OrderServiceImpl implements OrderService {
     private final ProductRepository productRepository;
 
     private final ModelMapper modelMapper;
+
+    private final RazorpayClient razorpayClient;
 
     @Transactional
     @Override
@@ -53,7 +67,7 @@ public class OrderServiceImpl implements OrderService {
         Order order = new Order();
         order.setUser(user);//Setting User Id Over Here
         order.setOrderDate(LocalDateTime.now());
-        order.setPaymentStatus("PENDING");
+        order.setPaymentStatus(PaymentStatus.PENDING);
         order.setTrackingNumber(generateTracingNumber());
 
         //Fetching address of user and placing order on specific address by using addressType
@@ -165,21 +179,81 @@ public class OrderServiceImpl implements OrderService {
         return modelMapper.map(cancelledOrder,OrderDTO.class);
     }
 
+    //After JWT BEARER TOKEN
+    @Transactional
+    @Override
+    public OrderDTO cancelTheOrder(Long orderId) throws RazorpayException {
+
+        log.info("Processing the cancel order");
+
+        //Authenticated the user
+        User user = securityIntegration.getAuthenticatedUser();
+
+        Order order = orderRepository.findByUserAndOrder(user.getUserId(),orderId)
+                .orElseThrow(()->new OrderNotFoundException("Order Not Found"));
+
+        if(!(order.getUser().getUserId().equals(user.getUserId())))
+            throw new AccessDeniedException("Access Denied");
+
+        Payment payment = order.getPayment();
+
+        System.out.println("RazorPay payment Id is "+payment.getRazorpayPaymentId());
+
+        if(order.getStatus()==OrderStatus.CANCELLED || order.getStatus()==OrderStatus.SHIPPED
+                || order.getStatus()==OrderStatus.DELIVERED)
+        {
+            String result = String.valueOf(order.getStatus());
+            throw new InvalidActionException("Order already "+result);
+        }
+
+        if(payment!=null) {
+            if (payment.getStatus() == PaymentStatus.SUCCESS) {
+                refundPayment(payment);
+
+                order.setStatus(OrderStatus.CANCELLED);
+
+                for (OrderItem orderItem : order.getOrderItems()) {
+                    Product product = orderItem.getProduct();
+                    product.setStockQuantity(product.getStockQuantity() + orderItem.getQuantity());
+                }
+            } else if (payment.getStatus() == PaymentStatus.PENDING || payment.getStatus() == PaymentStatus.FAILED) {
+                order.setStatus(OrderStatus.CANCELLED);
+            }
+        }
+        else
+        {
+            order.setStatus(OrderStatus.CANCELLED);
+        }
+
+        log.info("Order cancelled for {} and user {}",
+                orderId,
+                user.getUsername()
+                );
+
+        return modelMapper.map(order, OrderDTO.class);
+    }
+
+
     @Transactional
     @Override
     public OrderDTO changeOrderStatus(Long orderId,OrderStatus newStatus) {
 
-        log.trace("Entering to changeOrderStatus()");
+        log.info("Starting to update the order status {}",
+                newStatus
+                );
+
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(()->new OrderNotFoundException("Invalid OrderId "+orderId+"or Order Does not exists"));
 
         OrderStatus currentStatus = order.getStatus();
 
+        if(currentStatus==newStatus)
+          throw new InvalidActionException("Order is already "+currentStatus);
+
         switch (currentStatus) {
 
             case CREATED -> {
-                if(newStatus==OrderStatus.CONFIRMED ||
-                        newStatus==OrderStatus.CANCELLED)
+                if(newStatus==OrderStatus.CONFIRMED)
                 {
                     order.setStatus(newStatus);
                 }
@@ -216,9 +290,10 @@ public class OrderServiceImpl implements OrderService {
             case DELIVERED, CANCELLED ->
                     invalidStatusTransition(order.getStatus(),newStatus,orderId);
         }
-        Order savedOrder = orderRepository.save(order);
-        log.info("OrderStatus changed for order {}", orderId);
-        return modelMapper.map(savedOrder,OrderDTO.class);
+        log.info("OrderStatus changed for order {} with status {}",
+                orderId,
+                order.getStatus());
+        return modelMapper.map(order,OrderDTO.class);
     }
 
     @Override
@@ -244,6 +319,39 @@ public class OrderServiceImpl implements OrderService {
         RevenueDTO revenueDTO = new RevenueDTO();
         revenueDTO.setTotalRevenue(totalRevenue);
         return revenueDTO;
+    }
+
+    private void refundPayment(Payment payment) throws RazorpayException
+    {
+        com.razorpay.Payment razorPayPayment =
+                razorpayClient.payments.fetch(payment.getRazorpayPaymentId());
+
+        System.out.println(razorPayPayment.toJson().toString(2));
+
+        String status = razorPayPayment.get("status");
+
+        log.info("Razorpayment status is  {}",
+                status
+        );
+
+       long refundableAmount =
+               ((Number) razorPayPayment.get("amount")).longValue()
+             - ((Number) razorPayPayment.get("amount_refunded")).longValue();
+
+       if(refundableAmount<=0)
+           throw new RazorpayException("No refundable Amount Is remaining");
+
+        JSONObject request = new JSONObject();
+        request.put("amount",refundableAmount);
+
+        Refund refund = razorpayClient
+                        .payments.refund(payment.getRazorpayPaymentId(),request);
+
+        System.out.println(refund.toJson().toString(2));
+
+        payment.setStatus(PaymentStatus.REFUNDED);
+        payment.setRefundedAt(LocalDateTime.now());
+        payment.setRazorPayRefundId(refund.get("id"));
     }
 
     private String generateTracingNumber() {

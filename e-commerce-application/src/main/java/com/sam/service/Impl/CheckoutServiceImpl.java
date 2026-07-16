@@ -1,6 +1,7 @@
 package com.sam.service.Impl;
 
 import com.sam.constant.OrderStatus;
+import com.sam.constant.PaymentStatus;
 import com.sam.dao.AddressRepository;
 import com.sam.dao.OrderRepository;
 import com.sam.dao.UserRepository;
@@ -12,6 +13,7 @@ import com.sam.exception.CartItemNotFoundException;
 import com.sam.exception.InsufficientStockException;
 import com.sam.exception.InvalidActionException;
 import com.sam.service.CheckoutService;
+import com.sam.utility.SecurityIntegration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -38,22 +40,13 @@ public class CheckoutServiceImpl implements CheckoutService {
 
     private final OrderRepository orderRepository;
 
+    private final SecurityIntegration securityIntegration;
+
     @Override
     public OrderDTO checkout(CheckoutRequest checkoutRequest) {
 
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-
-        if(authentication==null || !authentication.isAuthenticated())
-            throw new AccessDeniedException("Not Authorized");
-
-        String username = authentication.getName();
-
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(()->{
-                    log.info("Fetched User with username {}",username);
-                    return new UsernameNotFoundException("Username not found");
-                });
+        //Authentication
+        User user = securityIntegration.getAuthenticatedUser();
 
         if(user.getCart()==null)
             throw new RuntimeException("User have no cart");
@@ -102,7 +95,7 @@ public class CheckoutServiceImpl implements CheckoutService {
 
         order.setOrderDate(LocalDateTime.now());
 
-        order.setPaymentStatus(String.valueOf(OrderStatus.PAYMENT_PENDING));
+        order.setPaymentStatus(PaymentStatus.PENDING);
 
         order.setPaymentMethod(checkoutRequest.getPaymentMethod());
 

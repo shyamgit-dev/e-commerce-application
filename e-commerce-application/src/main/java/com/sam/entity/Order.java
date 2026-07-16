@@ -1,6 +1,7 @@
 package com.sam.entity;
 
 import com.sam.constant.OrderStatus;
+import com.sam.constant.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -35,7 +36,8 @@ public class Order {
 
     private String paymentMethod;
 
-    private String paymentStatus;
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus paymentStatus;
 
     private String trackingNumber;
 
@@ -49,4 +51,7 @@ public class Order {
             orphanRemoval = true
     )
     private List<OrderItem> orderItems = new ArrayList<>();
+
+    @OneToOne(mappedBy = "order")
+    private Payment payment;
 }
