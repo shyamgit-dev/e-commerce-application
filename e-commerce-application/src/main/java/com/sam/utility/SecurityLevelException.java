@@ -1,6 +1,7 @@
 package com.sam.utility;
 
 import com.sam.dto.ErrorResponse;
+import com.sam.exception.InvalidTokenException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,5 +28,20 @@ public class SecurityLevelException {
              );
 
         return new ResponseEntity<>(errorResponse,HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<ErrorResponse> tokenExpired(AccessDeniedException e, HttpServletRequest request)
+    {
+        ErrorResponse errorResponse =
+                new ErrorResponse(
+                        LocalDateTime.now(),
+                        HttpStatus.UNAUTHORIZED.value(),
+                        "UNAUTHORIZED",
+                        e.getMessage(),
+                        request.getContextPath()
+                );
+
+        return new ResponseEntity<>(errorResponse,HttpStatus.UNAUTHORIZED);
     }
 }

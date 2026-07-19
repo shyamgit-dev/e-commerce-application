@@ -1,33 +1,45 @@
 package com.sam.controller;
 
-import com.sam.dao.RefreshTokenRepository;
-import com.sam.dao.UserRepository;
 import com.sam.dto.LogOutRequestDTO;
 import com.sam.dto.LoginRequestDTO;
 import com.sam.dto.LoginResponseDTO;
 import com.sam.dto.RefreshTokenRequestDTO;
-import com.sam.entity.RefreshToken;
-import com.sam.entity.User;
-import com.sam.service.Impl.CustomUserDetailsService;
-import com.sam.service.Impl.JWTService;
+import com.sam.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final JWTService jwtService;
+    private final AuthService authService;
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginRequestDTO requestDTO)
+    {
+        return new ResponseEntity<>(authService.login(requestDTO),HttpStatus.CREATED);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponseDTO> refresh(@RequestBody RefreshTokenRequestDTO refreshTokenRequestDTO)
+    {
+        return new ResponseEntity<>(authService.generateAccessTokenUsingRefreshToken(refreshTokenRequestDTO),
+                HttpStatus.CREATED);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestBody LogOutRequestDTO requestDTO)
+    {
+        authService.logout(requestDTO);
+        return new ResponseEntity<>("Logged Out",HttpStatus.CREATED);
+    }
+
+
+
+/*    private final JWTService jwtService;
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final CustomUserDetailsService userDetailsService;
@@ -96,7 +108,7 @@ public class AuthController {
           tokenRepository.findByToken(requestDTO.getRefreshToken())
                   .ifPresent(tokenRepository::delete);
           return new ResponseEntity<>("Logged Out",HttpStatus.CREATED);
-    }
+    }*/
 
 /*    @PostMapping("/login")
     public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginRequestDTO requestDTO)
