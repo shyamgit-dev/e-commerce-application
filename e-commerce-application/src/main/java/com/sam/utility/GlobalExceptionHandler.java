@@ -25,7 +25,8 @@ public class GlobalExceptionHandler {
                       OrderNotFoundException.class,
                       ProductNotFoundException.class,
                       AddressNotFoundException.class,
-                      CartItemNotFoundException.class
+                      CartItemNotFoundException.class,
+                      ReviewNotFoundException.class
     })
     public ResponseEntity<ErrorResponse> handleNotFound(RuntimeException e,
                                                             HttpServletRequest request)

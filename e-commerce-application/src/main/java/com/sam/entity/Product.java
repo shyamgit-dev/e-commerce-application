@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.math.BigDecimal;
+import java.util.List;
 
 @Entity
 @Getter
@@ -29,4 +30,9 @@ public class Product {
     private Integer stockQuantity;
 
     private String category;
+
+    private double averageRating;
+
+    @OneToMany(mappedBy = "product",cascade = CascadeType.ALL,orphanRemoval = true)
+    private List<Review> reviews;
 }

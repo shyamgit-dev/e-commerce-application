@@ -29,10 +29,10 @@ public class OrderDTO {
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
 
-    @NotBlank
+    //@NotBlank
     private String shippingAddress;
 
-    @NotBlank
+    //@NotBlank
     private String paymentMethod;
 
 /*    private String paymentStatus;
@@ -41,7 +41,7 @@ public class OrderDTO {
 
     private UserDTO userDTO;*/
 
-    @NotEmpty(message="Order Must Contain At Least One Item")
-    @Valid
+    //@NotEmpty(message="Order Must Contain At Least One Item")
+    //@Valid
     private List<OrderItemDTO> orderItems = new ArrayList<>();
 }
