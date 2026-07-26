@@ -29,6 +29,8 @@ public class Order {
 
     private BigDecimal totalAmount;
 
+    private BigDecimal discountAmount;
+
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
 
@@ -54,4 +56,10 @@ public class Order {
 
     @OneToOne(mappedBy = "order")
     private Payment payment;
+
+    @OneToOne(mappedBy = "order")
+    private CouponUsage couponUsage;
+
+    @ManyToOne
+    private Coupon coupon;
 }

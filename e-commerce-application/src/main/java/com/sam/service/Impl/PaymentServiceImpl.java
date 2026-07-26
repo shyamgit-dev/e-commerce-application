@@ -6,6 +6,7 @@ import com.razorpay.Utils;
 import com.sam.constant.OrderStatus;
 import com.sam.constant.PaymentMethod;
 import com.sam.constant.PaymentStatus;
+import com.sam.dao.CouponUsageRepository;
 import com.sam.dao.OrderRepository;
 import com.sam.dao.PaymentRepository;
 import com.sam.dao.UserRepository;
@@ -31,6 +32,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -46,9 +48,9 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final OrderRepository orderRepository;
 
-    private final UserRepository userRepository;
-
     private final PaymentRepository paymentRepository;
+
+    private final CouponUsageRepository couponUsageRepository;
 
     private final SecurityIntegration securityIntegration;
 
@@ -197,6 +199,29 @@ public class PaymentServiceImpl implements PaymentService {
             return response;
         }
 
+        if(payment.getStatus()==PaymentStatus.SUCCESS)
+        {
+            CouponUsage couponUsage = new CouponUsage();
+
+            Coupon coupon = payment.getOrder().getCoupon();
+
+            if(coupon!=null && !couponUsageRepository.existsByOrder(payment.getOrder())) {
+                couponUsage.setUser(user);
+                couponUsage.setCoupon(coupon);
+                couponUsage.setUsedAt(LocalDate.now());
+                couponUsage.setOrder(payment.getOrder());
+
+                coupon.setUsedCount(coupon.getUsedCount() + 1);
+
+                couponUsageRepository.save(couponUsage);
+
+                log.info("Coupon {} is used in order {} for user {} ",
+                        coupon.getCode(),
+                        payment.getOrder().getId(),
+                        user.getUsername()
+                );
+            }
+        }
         return response;
     }
 }

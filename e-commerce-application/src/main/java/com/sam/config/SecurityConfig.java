@@ -69,6 +69,9 @@ public class SecurityConfig {
                                 .requestMatchers(HttpMethod.DELETE,"/api/cart/items/*").hasRole("USER")
                                 .requestMatchers(HttpMethod.DELETE,"/api/cart").hasAnyRole("USER","ADMIN")
 
+                                .requestMatchers(HttpMethod.PUT,"/api/products/*/reviews").hasRole("USER")
+                                .requestMatchers(HttpMethod.GET,"/api/products/*/reviews").permitAll()
+
 
                                 .requestMatchers(HttpMethod.POST,"/api/cart/checkout").hasRole("USER")
 
@@ -89,6 +92,8 @@ public class SecurityConfig {
                                 .requestMatchers("/api/users/*/orders/*/cancel").hasAnyRole("USER","ADMIN")
                                 .requestMatchers("/api/orders/*/status").hasRole("ADMIN")
                                 .requestMatchers("/api/orders/*/cancel").hasAnyRole("USER","ADMIN")
+
+                                .requestMatchers("/api/admin/coupons/**").hasRole("ADMIN")
 
                                // PAYMENTS
                                 .requestMatchers(HttpMethod.POST,"/api/payments/create-order").hasRole("USER")

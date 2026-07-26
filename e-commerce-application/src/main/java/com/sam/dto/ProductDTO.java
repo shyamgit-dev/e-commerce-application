@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -31,4 +32,8 @@ public class ProductDTO {
 
     @NotBlank
     private String category;
+
+    private double averageRating;
+
+    private List<ReviewDTO> reviews;
 }

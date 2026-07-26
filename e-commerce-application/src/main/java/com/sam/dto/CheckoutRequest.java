@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CheckoutRequest {
-
     private String paymentMethod;
     private Long addressId;
+    private String couponCode;
 }
