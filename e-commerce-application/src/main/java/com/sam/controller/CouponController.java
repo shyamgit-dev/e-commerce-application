@@ -1,6 +1,7 @@
 package com.sam.controller;
 
 import com.sam.dto.CouponDTO;
+import com.sam.dto.CouponUsageInfo;
 import com.sam.service.CouponService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -36,5 +37,46 @@ public class CouponController {
     public ResponseEntity<CouponDTO> getCoupon(@PathVariable Long id)
     {
         return new ResponseEntity<>(couponService.getCoupon(id), HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/coupons/{id}")
+    public ResponseEntity<CouponDTO> updateCoupon(@PathVariable Long id,@RequestBody CouponDTO couponDTO)
+    {
+        return new ResponseEntity<>(couponService.updateCoupon(id,couponDTO), HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/coupons/{id}")
+    public ResponseEntity<String> deleteCoupon(@PathVariable Long id)
+    {
+        couponService.deleteCoupon(id);
+        String result = "Coupon is deleted having Id "+id;
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/coupons/{id}/activate")
+    public ResponseEntity<String> activateCoupon(@PathVariable Long id)
+    {
+        couponService.activateCoupon(id);
+        String result = "Coupon is activated having id "+id;
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/coupons/{id}/deactivate")
+    public ResponseEntity<String> deActivateCoupon(@PathVariable Long id)
+    {
+        couponService.deactivateCoupon(id);
+        String result = "Coupon is deactivated having id "+id;
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @PreAuthorize(("hasRole('ADMIN')"))
+    @GetMapping("/coupons/{id}/usage")
+    public ResponseEntity<CouponUsageInfo> usageInformation(@PathVariable Long id)
+    {
+        return new ResponseEntity<>(couponService.usageInformation(id),HttpStatus.OK);
     }
 }
