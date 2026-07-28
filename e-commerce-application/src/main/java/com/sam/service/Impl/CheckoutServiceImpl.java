@@ -6,10 +6,7 @@ import com.sam.dao.*;
 import com.sam.dto.CheckoutRequest;
 import com.sam.dto.OrderDTO;
 import com.sam.entity.*;
-import com.sam.exception.AddressNotFoundException;
-import com.sam.exception.CartItemNotFoundException;
-import com.sam.exception.InsufficientStockException;
-import com.sam.exception.InvalidActionException;
+import com.sam.exception.*;
 import com.sam.service.CheckoutService;
 import com.sam.utility.SecurityIntegration;
 import lombok.RequiredArgsConstructor;
@@ -101,7 +98,7 @@ public class CheckoutServiceImpl implements CheckoutService {
 
         if(checkoutRequest.getCouponCode()!=null && !checkoutRequest.getCouponCode().isBlank()) {
             Coupon coupon = couponRepository.findByCode(checkoutRequest.getCouponCode())
-                    .orElseThrow(() -> new InvalidActionException("Coupon does not exists"));
+                    .orElseThrow(() -> new CouponNotFoundException("Coupon does not exists"));
             applyCoupon(order, user, coupon);
         }
 
