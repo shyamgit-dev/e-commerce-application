@@ -15,6 +15,23 @@ spring:
     hibernate:
       ddl-auto: update
 
+#Java Built In Email
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: saampandey4@gmail.com
+    password: tcxj gfna lxrm xpxa
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# Sendgrid Email
+sendgrid:
+  api-key: ${SENDGRID_API_KEY}}
+
 #logging
 logging:
   level:
@@ -36,3 +53,4 @@ jwt:
 razorpay:
   key-id: ${RAZORPAY_KEY_ID}
   key-secret: ${RAZORPAY_KEY_SECRET}
+

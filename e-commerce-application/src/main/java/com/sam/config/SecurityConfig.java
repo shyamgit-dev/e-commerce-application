@@ -44,6 +44,7 @@ public class SecurityConfig {
                                         "/index.html",
                                         "/success.html",
                                         "/failure.html",
+                                        "/checkout.html",
                                         "/css/**",
                                         "/js/**",
                                         "/images/**"

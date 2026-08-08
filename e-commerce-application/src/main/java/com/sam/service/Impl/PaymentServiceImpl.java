@@ -3,6 +3,7 @@ package com.sam.service.Impl;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
 import com.razorpay.Utils;
+import com.sam.constant.NotificationType;
 import com.sam.constant.OrderStatus;
 import com.sam.constant.PaymentMethod;
 import com.sam.constant.PaymentStatus;
@@ -18,6 +19,8 @@ import com.sam.entity.*;
 import com.sam.exception.InsufficientStockException;
 import com.sam.exception.InvalidActionException;
 import com.sam.exception.OrderNotFoundException;
+import com.sam.service.EmailService;
+import com.sam.service.NotificationService;
 import com.sam.service.PaymentService;
 import com.sam.utility.SecurityIntegration;
 import jakarta.transaction.Transactional;
@@ -52,7 +55,11 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final CouponUsageRepository couponUsageRepository;
 
+    private final NotificationService notificationService;
+
     private final SecurityIntegration securityIntegration;
+
+    private final EmailService emailService;
 
     @Transactional
     @Override
@@ -83,7 +90,6 @@ public class PaymentServiceImpl implements PaymentService {
             response.setCurrency("INR");
             return response;
         }
-
 
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("amount",
@@ -169,7 +175,7 @@ public class PaymentServiceImpl implements PaymentService {
             }
             //set cart to null
             if(user.getCart()==null)
-                throw new RuntimeException("Empty Cart");
+                throw new IllegalStateException("Empty Cart");
 
             List<CartItem> cartItems = user.getCart().getCartItems();
             cartItems.clear();
@@ -191,6 +197,8 @@ public class PaymentServiceImpl implements PaymentService {
                     payment.getOrder().getId()
                     );
 
+            payment.setStatus(PaymentStatus.FAILED);
+            payment.getOrder().setPaymentStatus(PaymentStatus.FAILED);
             response.setPaymentStatus(PaymentStatus.FAILED);
             response.setRazorpayPaymentId(null);
             response.setRazorpayOrderId(payment.getRazorpayOrderId());
@@ -201,6 +209,32 @@ public class PaymentServiceImpl implements PaymentService {
 
         if(payment.getStatus()==PaymentStatus.SUCCESS)
         {
+            //SENDING NOTIFICATION AFTER SUCCESSFULL PAYMENT
+            notificationService.createNotification(
+                    user,
+                    NotificationType.PAYMENT_SUCCESS,
+                    "Payment Successful",
+                    "Your Payment was Successful",
+                    payment.getOrder()
+            );
+
+            try {
+                emailService.sendEmail(
+                        user,
+                        "Payment Paid Successfully",
+                        "Payment of Rupees "+payment.getAmount() +" for order #"+payment.getOrder().getId()+" has been paid successfully"
+                );
+
+                emailService.sendEmailSendGrid(
+                        user,
+                        "Payment Paid Successfully",
+                        "Payment of Rupees "+payment.getAmount() +" for order #"+payment.getOrder().getId()+" has been paid successfully"
+
+                );
+            } catch (Exception e) {
+                log.error("Failed to send email",e);
+            }
+
             CouponUsage couponUsage = new CouponUsage();
 
             Coupon coupon = payment.getOrder().getCoupon();
@@ -215,12 +249,30 @@ public class PaymentServiceImpl implements PaymentService {
 
                 couponUsageRepository.save(couponUsage);
 
+                notificationService.createNotification(
+                        user,
+                        NotificationType.COUPON_RECEIVED,
+                        "Coupon Redeemed Successfully",
+                        "Lucky!! Fellow",
+                        payment.getOrder()
+                );
+
                 log.info("Coupon {} is used in order {} for user {} ",
                         coupon.getCode(),
                         payment.getOrder().getId(),
                         user.getUsername()
                 );
             }
+        }
+        else if (payment.getStatus()==PaymentStatus.FAILED)
+        {
+            notificationService.createNotification(
+                    user,
+                    NotificationType.PAYMENT_FAILED,
+                    "PAYMENT FAILED",
+                    "Please try again later!!",
+                    payment.getOrder()
+            );
         }
         return response;
     }

@@ -46,4 +46,9 @@ public class User {
             cascade = CascadeType.ALL,
             orphanRemoval = true)
     private List<CouponUsage> couponUsages;
+
+    @OneToMany(mappedBy = "user",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)
+    private List<Notification> notifications;
 }

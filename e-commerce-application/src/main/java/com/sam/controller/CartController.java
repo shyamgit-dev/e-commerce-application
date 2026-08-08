@@ -55,6 +55,7 @@ public class CartController {
         return new ResponseEntity<>(result,HttpStatus.OK);
     }
 
+
     @PreAuthorize("hasRole('USER')")
     @PostMapping("/cart/checkout")
     public ResponseEntity<OrderDTO> checkout(@RequestBody CheckoutRequest checkoutRequest)
