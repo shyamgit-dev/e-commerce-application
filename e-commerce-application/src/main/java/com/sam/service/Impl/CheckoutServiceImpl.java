@@ -24,8 +24,6 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class CheckoutServiceImpl implements CheckoutService {
 
-    private final UserRepository userRepository;
-
     private final AddressRepository addressRepository;
 
     private final ModelMapper modelMapper;

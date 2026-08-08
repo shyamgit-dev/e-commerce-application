@@ -91,6 +91,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         reviews.forEach(review -> {
             ReviewDTO reviewDTO =modelMapper.map(review,ReviewDTO.class);
+            reviewDTO.setUsername(review.getUser().getUsername());
             reviewDTOS.add(reviewDTO);
         });
         return reviewDTOS;
